@@ -27,9 +27,11 @@ wifi:
 
 packages:
   mdd665_backend:
-    url: https://raw.githubusercontent.com/SQ9MDD/mdd665-esphome/main/backend/mdd665_core.yaml
-
-# PUBLICZNE API dla użytkownika
+    url: https://github.com/SQ9MDD/mdd665-esphome
+    ref: main
+    files:
+      - backend/mdd665_core.yaml
+    refresh: 0s
 
 binary_sensor:
   # DI1..DI6, mapowane na backendowe diX
