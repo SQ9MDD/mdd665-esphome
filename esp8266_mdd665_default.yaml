@@ -1,6 +1,6 @@
 substitutions:
-  device_name: mdd665
-  friendly_name: "MDD665"
+  device_name: mdd665-default
+  friendly_name: "MDD665 Default"
 
 esphome:
   name: ${device_name}
