@@ -1,0 +1,340 @@
+# backend/mdd665_core.yaml
+# tylko komponenty, które mają być wspólne dla wszystkich przykładów.
+
+#################################################
+# UART do ATmegi
+#################################################
+uart:
+  id: uart_bus
+  tx_pin: 1
+  rx_pin: 3
+  baud_rate: 115200
+  debug:
+    direction: RX
+    dummy_receiver: true
+    after:
+      delimiter: "\n"
+      timeout: 200ms
+    sequence:
+      - lambda: |-
+          static bool first_update = true;
+          // zamiana odebranych bajtow na string C++
+          std::string s(bytes.begin(), bytes.end());
+
+          // utnij ewentualne \r na koncu
+          while (!s.empty() && (s.back() == '\r' || s.back() == '\n')) {
+            s.pop_back();
+          }
+
+          ESP_LOGD("uart", "RX: %s", s.c_str());
+
+          // 1. poprawna odpowiedz stanu
+          if (s.rfind("R;DI=", 0) == 0) {
+            // przechodzimy do dalszego parsowania
+          }
+          // 2. potwierdzenie wykonania polecenia
+          else if (s == "OK") {
+            ESP_LOGI("uart", "Potwierdzenie OK");
+            return;  // nic więcej do roboty
+          }
+          // 3. błąd wykonania polecenia
+          else if (s == "ERR") {
+            ESP_LOGW("uart", "ATmega zglosila blad polecenia");
+            return;
+          }
+          // 4. wszystko inne ignorujemy bez spamu
+          else {
+            ESP_LOGW("uart", "Ignoruje ramke: %s", s.c_str());
+            return;
+          }
+
+          auto find_or_fail = [&](const char *token) -> size_t {
+            size_t p = s.find(token);
+            if (p == std::string::npos) {
+              ESP_LOGW("uart", "Brak pola %s w ramce: %s", token, s.c_str());
+            }
+            return p;
+          };
+
+          size_t di_pos = find_or_fail("DI=");
+          size_t do_pos = find_or_fail(";DO=");
+          size_t ai_pos = find_or_fail(";AI=");
+
+          if (di_pos == std::string::npos || do_pos == std::string::npos || ai_pos == std::string::npos) {
+            return;
+          }
+
+          std::string di = s.substr(di_pos + 3, do_pos - (di_pos + 3));      // 6 znakow
+          std::string dout = s.substr(do_pos + 4, ai_pos - (do_pos + 4));   // 6 znakow
+          std::string ai = s.substr(ai_pos + 4);                            // reszta
+
+          // DI: 6 bitow
+          // DI: 1 = obwod otwarty = OFF, 0 = zwarcie = ON
+          if (di.size() >= 6) {
+            bool new_di1 = (di[0] == '0');
+            bool new_di2 = (di[1] == '0');
+            bool new_di3 = (di[2] == '0');
+            bool new_di4 = (di[3] == '0');
+            bool new_di5 = (di[4] == '0');
+            bool new_di6 = (di[5] == '0');
+
+            if (first_update || id(di1).state != new_di1) id(di1).publish_state(new_di1);
+            if (first_update || id(di2).state != new_di2) id(di2).publish_state(new_di2);
+            if (first_update || id(di3).state != new_di3) id(di3).publish_state(new_di3);
+            if (first_update || id(di4).state != new_di4) id(di4).publish_state(new_di4);
+            if (first_update || id(di5).state != new_di5) id(di5).publish_state(new_di5);
+            if (first_update || id(di6).state != new_di6) id(di6).publish_state(new_di6);
+          }
+           else {
+            ESP_LOGW("uart", "Za krotkie DI: %s", di.c_str());
+          }
+
+          // DO: 6 bitow
+          if (dout.size() >= 6) {
+            bool new_do1 = (dout[0] == '1');
+            bool new_do2 = (dout[1] == '1');
+            bool new_do3 = (dout[2] == '1');
+            bool new_do4 = (dout[3] == '1');
+            bool new_do5 = (dout[4] == '1');
+            bool new_do6 = (dout[5] == '1');
+
+            if (first_update || id(do1).state != new_do1) id(do1).publish_state(new_do1);
+            if (first_update || id(do2).state != new_do2) id(do2).publish_state(new_do2);
+            if (first_update || id(do3).state != new_do3) id(do3).publish_state(new_do3);
+            if (first_update || id(do4).state != new_do4) id(do4).publish_state(new_do4);
+            if (first_update || id(do5).state != new_do5) id(do5).publish_state(new_do5);
+            if (first_update || id(do6).state != new_do6) id(do6).publish_state(new_do6);
+          } else {
+            ESP_LOGW("uart", "Za krotkie DO: %s", dout.c_str());
+          }
+
+          // AI: parsowanie po przecinku do 5 wartosci
+          auto parse_int = [](const std::string &str) -> int {
+            return atoi(str.c_str());
+          };
+          int idx = 0;
+          size_t start = 0;
+          while (start < ai.size() && idx < 5) {
+            size_t comma = ai.find(',', start);
+            std::string token;
+            if (comma == std::string::npos) {
+              token = ai.substr(start);
+              start = ai.size();
+            } else {
+              token = ai.substr(start, comma - start);
+              start = comma + 1;
+            }
+
+            int raw = atoi(token.c_str());
+
+            const float N = 60.0f;      // filtr 60 sekund
+            const float deadband = 0.1; // publikacja gdy zmiana >= 1
+
+            switch (idx) {
+
+              case 0: {
+                static float avg = NAN;
+                if (isnan(avg)) avg = raw;
+                else avg = (avg * (N - 1) + raw) / N;
+
+                int rounded = (int)roundf(avg);
+                int old = (int)id(ai1).state;
+
+                if (isnan(id(ai1).state) || abs(old - rounded) >= deadband) {
+                  id(ai1).publish_state(rounded);
+                }
+                break;
+              }
+
+              case 1: {
+                static float avg = NAN;
+                if (isnan(avg)) avg = raw;
+                else avg = (avg * (N - 1) + raw) / N;
+
+                int rounded = (int)roundf(avg);
+                int old = (int)id(ai2).state;
+
+                if (isnan(id(ai2).state) || abs(old - rounded) >= deadband) {
+                  id(ai2).publish_state(rounded);
+                }
+                break;
+              }
+
+              case 2: {
+                static float avg = NAN;
+                if (isnan(avg)) avg = raw;
+                else avg = (avg * (N - 1) + raw) / N;
+
+                int rounded = (int)roundf(avg);
+                int old = (int)id(ai3).state;
+
+                if (isnan(id(ai3).state) || abs(old - rounded) >= deadband) {
+                  id(ai3).publish_state(rounded);
+                }
+                break;
+              }
+
+              case 3: {
+                static float avg = NAN;
+                if (isnan(avg)) avg = raw;
+                else avg = (avg * (N - 1) + raw) / N;
+
+                int rounded = (int)roundf(avg);
+                int old = (int)id(ai4).state;
+
+                if (isnan(id(ai4).state) || abs(old - rounded) >= deadband) {
+                  id(ai4).publish_state(rounded);
+                }
+                break;
+              }
+
+              case 4: {
+                static float avg = NAN;
+                if (isnan(avg)) avg = raw;
+                else avg = (avg * (N - 1) + raw) / N;
+
+                int rounded = (int)roundf(avg);
+                int old = (int)id(ai5).state;
+
+                if (isnan(id(ai5).state) || abs(old - rounded) >= deadband) {
+                  id(ai5).publish_state(rounded);
+                }
+                break;
+              }
+            }
+
+            idx++;
+          }
+
+          if (first_update) {
+            first_update = false;
+          }
+
+#################################################
+# Cykliczne rzeczy
+#################################################
+interval:
+  - interval: 250ms
+    then:
+      - uart.write: "R\n"
+
+  - interval: 10s   # heartbeat
+    then:
+      - output.turn_on: hb_led
+      - delay: 3ms
+      - output.turn_off: hb_led
+      - delay: 120ms
+      - output.turn_on: hb_led
+      - delay: 3ms
+      - output.turn_off: hb_led
+
+#################################################
+# LED heartbeat
+#################################################
+output:
+  - platform: gpio
+    id: hb_led
+    pin: 2
+    inverted: true
+
+#################################################
+# Encje DI, DO, AI - backendowe, internal
+#################################################
+
+binary_sensor:
+  # DI - wewnętrzne, stan ustawiany z UART lambdy
+  - platform: template
+    id: di1
+    internal: true
+  - platform: template
+    id: di2
+    internal: true
+  - platform: template
+    id: di3
+    internal: true
+  - platform: template
+    id: di4
+    internal: true
+  - platform: template
+    id: di5
+    internal: true
+  - platform: template
+    id: di6
+    internal: true
+
+sensor:
+  # surowe AI 0..1023 - tylko dla backendu
+  - platform: template
+    id: ai1
+    internal: true
+    accuracy_decimals: 0
+
+  - platform: template
+    id: ai2
+    internal: true
+    accuracy_decimals: 0
+
+  - platform: template
+    id: ai3
+    internal: true
+    accuracy_decimals: 0
+
+  - platform: template
+    id: ai4
+    internal: true
+    accuracy_decimals: 0
+
+  - platform: template
+    id: ai5
+    internal: true
+    accuracy_decimals: 0
+
+switch:
+  # DO - wewnętrzne, sterowane przez UART
+  - platform: template
+    id: do1
+    internal: true
+    turn_on_action:
+      - uart.write: "W;O1=1\n"
+    turn_off_action:
+      - uart.write: "W;O1=0\n"
+
+  - platform: template
+    id: do2
+    internal: true
+    turn_on_action:
+      - uart.write: "W;O2=1\n"
+    turn_off_action:
+      - uart.write: "W;O2=0\n"
+
+  - platform: template
+    id: do3
+    internal: true
+    turn_on_action:
+      - uart.write: "W;O3=1\n"
+    turn_off_action:
+      - uart.write: "W;O3=0\n"
+
+  - platform: template
+    id: do4
+    internal: true
+    turn_on_action:
+      - uart.write: "W;O4=1\n"
+    turn_off_action:
+      - uart.write: "W;O4=0\n"
+
+  - platform: template
+    id: do5
+    internal: true
+    turn_on_action:
+      - uart.write: "W;O5=1\n"
+    turn_off_action:
+      - uart.write: "W;O5=0\n"
+
+  - platform: template
+    id: do6
+    internal: true
+    turn_on_action:
+      - uart.write: "W;O6=1\n"
+    turn_off_action:
+      - uart.write: "W;O6=0\n"
