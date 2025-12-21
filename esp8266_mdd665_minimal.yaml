@@ -37,31 +37,37 @@ packages:
 binary_sensor:
   # DI1..DI6, mapowane na backendowe diX
   - platform: template
+    id: DI1
     name: "DI1"
     lambda: |-
       return id(di1).state;
 
   - platform: template
+    id: DI2 
     name: "DI2"
     lambda: |-
       return id(di2).state;
 
   - platform: template
+    id: DI3
     name: "DI3"
     lambda: |-
       return id(di3).state;
 
   - platform: template
+    id: DI4
     name: "DI4"
     lambda: |-
       return id(di4).state;
 
   - platform: template
+    id: DI5
     name: "DI5"
     lambda: |-
       return id(di5).state;
 
   - platform: template
+    id: DI6
     name: "DI6"
     lambda: |-
       return id(di6).state;
@@ -69,6 +75,7 @@ binary_sensor:
 switch:
   # DO1..DO6, mapowane na backendowe doX
   - platform: template
+    id: DO1
     name: "DO1"
     lambda: |-
       return id(do1).state;
@@ -78,6 +85,7 @@ switch:
       - switch.turn_off: do1
 
   - platform: template
+    id: DO2
     name: "DO2"
     lambda: |-
       return id(do2).state;
@@ -87,6 +95,7 @@ switch:
       - switch.turn_off: do2
 
   - platform: template
+    id: DO3
     name: "DO3"
     lambda: |-
       return id(do3).state;
@@ -96,6 +105,7 @@ switch:
       - switch.turn_off: do3
 
   - platform: template
+    id: DO4
     name: "DO4"
     lambda: |-
       return id(do4).state;
@@ -125,35 +135,35 @@ switch:
 sensor:
   - platform: template
     name: "AI1"
-    id: ai1_pub
+    id: AI1
     accuracy_decimals: 0
     lambda: |-
       return id(ai1).state;
 
   - platform: template
     name: "AI2"
-    id: ai2_pub
+    id: AI2
     accuracy_decimals: 0
     lambda: |-
       return id(ai2).state;
 
   - platform: template
     name: "AI3"
-    id: ai3_pub
+    id: AI3
     accuracy_decimals: 0
     lambda: |-
       return id(ai3).state;
 
   - platform: template
     name: "AI4"
-    id: ai4_pub
+    id: AI4
     accuracy_decimals: 0
     lambda: |-
       return id(ai4).state;
 
   - platform: template
     name: "AI5"
-    id: ai5_pub
+    id: AI5
     accuracy_decimals: 0
     lambda: |-
       return id(ai5).state;

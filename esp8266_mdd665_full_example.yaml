@@ -40,6 +40,7 @@ packages:
 binary_sensor:
   # DI1..DI6, mapowane na backendowe diX
   - platform: template
+    id: DI1
     name: "DI1"
     lambda: |-
       return id(di1).state;
@@ -47,6 +48,7 @@ binary_sensor:
       - switch.toggle: do1
 
   - platform: template
+    id: DI2
     name: "DI2"
     lambda: |-
       return id(di2).state;
@@ -61,6 +63,7 @@ binary_sensor:
       - switch.toggle: do3
 
   - platform: template
+    id: DI4
     name: "DI4"
     lambda: |-
       return id(di4).state;
@@ -68,6 +71,7 @@ binary_sensor:
       - switch.toggle: do4
 
   - platform: template
+    id: DI5
     name: "DI5"
     lambda: |-
       return id(di5).state;
@@ -75,6 +79,7 @@ binary_sensor:
       - switch.toggle: do5
 
   - platform: template
+    id: DI6
     name: "DI6"
     lambda: |-
       return id(di6).state;
@@ -84,6 +89,7 @@ binary_sensor:
 switch:
   # DO1..DO6, owijają backendowe doX
   - platform: template
+    id: DO1
     name: "DO1"
     lambda: |-
       return id(do1).state;
@@ -93,6 +99,7 @@ switch:
       - switch.turn_off: do1
 
   - platform: template
+    id: DO2
     name: "DO2"
     lambda: |-
       return id(do2).state;
@@ -102,6 +109,7 @@ switch:
       - switch.turn_off: do2
 
   - platform: template
+    id: DO3
     name: "DO3"
     lambda: |-
       return id(do3).state;
@@ -111,6 +119,7 @@ switch:
       - switch.turn_off: do3
 
   - platform: template
+    id: DO4
     name: "DO4"
     lambda: |-
       return id(do4).state;
@@ -120,6 +129,7 @@ switch:
       - switch.turn_off: do4
 
   - platform: template
+    id: DO5
     name: "DO5"
     lambda: |-
       return id(do5).state;
@@ -129,6 +139,7 @@ switch:
       - switch.turn_off: do5
 
   - platform: template
+    id: DO6
     name: "DO6"
     lambda: |-
       return id(do6).state;
@@ -141,7 +152,7 @@ sensor:
   # AI1..AI4 jako temperatury z NTC 10k B3950 na dzielniku 10k
   - platform: template
     name: "AI1 Temperatura"
-    id: ai1_temp
+    id: AI1
     unit_of_measurement: "°C"
     icon: "mdi:thermometer"
     accuracy_decimals: 1
@@ -165,7 +176,7 @@ sensor:
 
   - platform: template
     name: "AI2 Temperatura"
-    id: ai2_temp
+    id: AI2
     unit_of_measurement: "°C"
     icon: "mdi:thermometer"
     accuracy_decimals: 1
@@ -189,7 +200,7 @@ sensor:
 
   - platform: template
     name: "AI3 Temperatura"
-    id: ai3_temp
+    id: AI3
     unit_of_measurement: "°C"
     icon: "mdi:thermometer"
     accuracy_decimals: 1
@@ -213,7 +224,7 @@ sensor:
 
   - platform: template
     name: "AI4 Temperatura"
-    id: ai4_temp
+    id: AI4
     unit_of_measurement: "°C"
     icon: "mdi:thermometer"
     accuracy_decimals: 1
@@ -237,7 +248,7 @@ sensor:
 
   - platform: template
     name: "AI5 Lux"
-    id: ai5_lux
+    id: AI5
     unit_of_measurement: "lx"
     icon: "mdi:brightness-6"
     accuracy_decimals: 0
