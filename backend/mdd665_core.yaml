@@ -108,15 +108,14 @@ uart:
             ESP_LOGW("uart", "Za krotkie DO: %s", dout.c_str());
           }
 
-          // AI: parsowanie po przecinku do 5 wartosci
-          auto parse_int = [](const std::string &str) -> int {
-            return atoi(str.c_str());
-          };
+          // AI: parsowanie po przecinku do 5 wartości i publikacja raw 0-1023
           int idx = 0;
           size_t start = 0;
+
           while (start < ai.size() && idx < 5) {
             size_t comma = ai.find(',', start);
             std::string token;
+
             if (comma == std::string::npos) {
               token = ai.substr(start);
               start = ai.size();
@@ -125,82 +124,18 @@ uart:
               start = comma + 1;
             }
 
+            // atoi toleruje spacje i kończy na pierwszym nie-cyfrze
             int raw = atoi(token.c_str());
-
-            const float N = 60.0f;      // filtr 60 sekund
-            const float deadband = 0.1; // publikacja gdy zmiana >= 1
+            if (raw < 0) raw = 0;
+            if (raw > 1023) raw = 1023;
 
             switch (idx) {
-
-              case 0: {
-                static float avg = NAN;
-                if (isnan(avg)) avg = raw;
-                else avg = (avg * (N - 1) + raw) / N;
-
-                int rounded = (int)roundf(avg);
-                int old = (int)id(ai1).state;
-
-                if (isnan(id(ai1).state) || abs(old - rounded) >= deadband) {
-                  id(ai1).publish_state(rounded);
-                }
-                break;
-              }
-
-              case 1: {
-                static float avg = NAN;
-                if (isnan(avg)) avg = raw;
-                else avg = (avg * (N - 1) + raw) / N;
-
-                int rounded = (int)roundf(avg);
-                int old = (int)id(ai2).state;
-
-                if (isnan(id(ai2).state) || abs(old - rounded) >= deadband) {
-                  id(ai2).publish_state(rounded);
-                }
-                break;
-              }
-
-              case 2: {
-                static float avg = NAN;
-                if (isnan(avg)) avg = raw;
-                else avg = (avg * (N - 1) + raw) / N;
-
-                int rounded = (int)roundf(avg);
-                int old = (int)id(ai3).state;
-
-                if (isnan(id(ai3).state) || abs(old - rounded) >= deadband) {
-                  id(ai3).publish_state(rounded);
-                }
-                break;
-              }
-
-              case 3: {
-                static float avg = NAN;
-                if (isnan(avg)) avg = raw;
-                else avg = (avg * (N - 1) + raw) / N;
-
-                int rounded = (int)roundf(avg);
-                int old = (int)id(ai4).state;
-
-                if (isnan(id(ai4).state) || abs(old - rounded) >= deadband) {
-                  id(ai4).publish_state(rounded);
-                }
-                break;
-              }
-
-              case 4: {
-                static float avg = NAN;
-                if (isnan(avg)) avg = raw;
-                else avg = (avg * (N - 1) + raw) / N;
-
-                int rounded = (int)roundf(avg);
-                int old = (int)id(ai5).state;
-
-                if (isnan(id(ai5).state) || abs(old - rounded) >= deadband) {
-                  id(ai5).publish_state(rounded);
-                }
-                break;
-              }
+              case 0: id(ai1).publish_state(raw); break;
+              case 1: id(ai2).publish_state(raw); break;
+              case 2: id(ai3).publish_state(raw); break;
+              case 3: id(ai4).publish_state(raw); break;
+              case 4: id(ai5).publish_state(raw); break;
+              default: break;
             }
 
             idx++;
